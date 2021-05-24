@@ -1,3 +1,4 @@
+import com.google.gson.Gson;
 import io.swagger.client.ApiException;
 import io.swagger.client.ApiResponse;
 import io.swagger.client.api.TextbodyApi;
@@ -15,6 +16,7 @@ public class Consumer implements Runnable {
   private final Count syncCountSuccess;
   private final Count syncCountFailure;
   private final TextbodyApi textbodyApi;
+  private final BlockingQueue<CSVRecord> csvWaitingQueue;
 
   /**
    * Instantiates a new Consumer.
@@ -23,13 +25,16 @@ public class Consumer implements Runnable {
    * @param syncCountSuccess the successful requests counter
    * @param syncCountFailure the unsuccessful requests counter
    * @param textbodyApi      the textbody api
+   * @param csvWaitingQueue  the blocking queue
    */
   public Consumer(BlockingQueue<String> queue,
-      Count syncCountSuccess, Count syncCountFailure, TextbodyApi textbodyApi) {
+      Count syncCountSuccess, Count syncCountFailure, TextbodyApi textbodyApi,
+      BlockingQueue<CSVRecord> csvWaitingQueue) {
     this.queue = queue;
     this.syncCountSuccess = syncCountSuccess;
     this.syncCountFailure = syncCountFailure;
     this.textbodyApi = textbodyApi;
+    this.csvWaitingQueue = csvWaitingQueue;
   }
 
   @Override
@@ -44,31 +49,51 @@ public class Consumer implements Runnable {
         }
         process(line);
       }
-    } catch (InterruptedException | ApiException e) {
+    } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-      System.out.println("Thread is interrupted");
     }
   }
 
-  private void process(String line) throws ApiException {
+  private void process(String line) throws InterruptedException {
     // constructs request body
     TextLine textLine = new TextLine();
     textLine.setMessage(line);
 
-    // send requests to server
-    ApiResponse response = textbodyApi.analyzeNewLineWithHttpInfo(textLine, "wordcount");
+    CSVRecord csvRecord;
 
-    // if status code is 200, print result value
-    if (response.getStatusCode() == 200) {
+    // start time
+    long startTime = System.currentTimeMillis();
+
+    try {
+      // send requests to server
+      ApiResponse response = textbodyApi.analyzeNewLineWithHttpInfo(textLine, "wordcount");
+
+      // end time
+      long endTime = System.currentTimeMillis();
+      // total run time (wall time)
+      long latency = endTime - startTime;
+
+      // if status code is 200, print result value
       this.syncCountSuccess.inc();
       ResultVal resultVal = (ResultVal) response.getData();
-      System.out.println(resultVal.getMessage());
-    } else {
+      csvRecord = new CSVRecord(startTime, "POST", latency, 200);
+      // System.out.println(resultVal.getMessage());
+    } catch (ApiException e) {
+      // end time
+      long endTime = System.currentTimeMillis();
+      // total run time (wall time)
+      long latency = endTime - startTime;
+
       // if status code is 4xx or 5xx, print error message
       this.syncCountFailure.inc();
-      ErrMessage errMessage = (ErrMessage) response.getData();
+      ErrMessage errMessage = new Gson().fromJson(e.getResponseBody(), ErrMessage.class);
       System.err.println(errMessage.getMessage());
+      System.out.println(e.getCode());
+
+      csvRecord = new CSVRecord(startTime, "POST", latency, e.getCode());
     }
+
+    this.csvWaitingQueue.put(csvRecord);
 
 
   }
