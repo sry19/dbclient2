@@ -5,7 +5,7 @@ public class CSVRecord {
 
   private double startTime;
   private String requestType;
-  private double latency;
+  private long latency;
   private int responseCode;
 
   /**
@@ -16,7 +16,7 @@ public class CSVRecord {
    * @param latency      the latency
    * @param responseCode the response code
    */
-  public CSVRecord(double startTime, String requestType, double latency, int responseCode) {
+  public CSVRecord(double startTime, String requestType, long latency, int responseCode) {
     this.startTime = startTime;
     this.requestType = requestType;
     this.latency = latency;
