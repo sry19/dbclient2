@@ -36,12 +36,10 @@ public class TextbodyApiExample {
       // create a file reader
       FileReader fileReader = new FileReader(file);
       // create a blocking queue to store texts
-      BlockingQueue<String> blockingQueue = new LinkedBlockingQueue<>(
-          ClientConstant.NUM_OF_TEXT_WAITING_QUEUE);
+      BlockingQueue<String> blockingQueue = new LinkedBlockingQueue<>();
 
       // wait to write in csv
-      BlockingQueue<CSVRecord> csvWaitingQueue = new LinkedBlockingQueue<>(
-          ClientConstant.NUM_OF_CSV_WAITING_QUEUE);
+      BlockingQueue<CSVRecord> csvWaitingQueue = new LinkedBlockingQueue<>();
 
       // create 2 counters to count the number of successful/unsuccessful requests
       Count syncCountSuccess = new Count(0);
@@ -89,7 +87,7 @@ public class TextbodyApiExample {
       System.out.println("Total run time(wall time): " + totalTime);
       System.out.println("Successful requests: " + syncCountSuccess.getCount());
       System.out.println("Unsuccessful requests: " + syncCountFailure.getCount());
-      System.out.println("Throughput(requests per second): " + throughput);
+      System.out.println("Throughput(requests per second): " + throughput*1000);
 
       // end sign
       csvWaitingQueue.put(new CSVRecord(0, "", 0, 200));
