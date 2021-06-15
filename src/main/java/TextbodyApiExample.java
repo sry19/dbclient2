@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 
 /**
@@ -51,28 +52,36 @@ public class TextbodyApiExample {
 
       // create and store all the consumers
       LinkedList<Thread> threadList = new LinkedList<>();
-      for (int i = 0; i < numOfThreads; i++) {
-        Thread thread = new Thread(
-            new Consumer(blockingQueue, syncCountSuccess, syncCountFailure, apiInstance,
-                csvWaitingQueue));
-        threadList.add(thread);
-        thread.start();
-      }
+      CountDownLatch countDownLatch = new CountDownLatch(numOfThreads);
+
+      // start time
+      long startTime = System.currentTimeMillis();
 
       // a thread writing to csv file
       Thread writer = new Thread(new CSVWriter(ClientConstant.REPORT_CSV, csvWaitingQueue));
       writer.start();
 
-      // start time
-      long startTime = System.currentTimeMillis();
-
       // create a file reader thread
       new Thread(new Reader(blockingQueue, numOfThreads, fileReader)).start();
 
-      // wait until all threads finish their work
       for (int i = 0; i < numOfThreads; i++) {
-        threadList.get(i).join();
+        Thread thread = new Thread(
+            new Consumer(blockingQueue, syncCountSuccess, syncCountFailure, apiInstance,
+                csvWaitingQueue, countDownLatch));
+        //threadList.add(thread);
+        thread.start();
       }
+
+
+      countDownLatch.await();
+
+
+
+
+      // wait until all threads finish their work
+//      for (int i = 0; i < numOfThreads; i++) {
+//        threadList.get(i).join();
+//      }
 
       // end time
       long endTime = System.currentTimeMillis();

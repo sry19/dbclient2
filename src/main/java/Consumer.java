@@ -6,6 +6,7 @@ import io.swagger.client.model.ErrMessage;
 import io.swagger.client.model.ResultVal;
 import io.swagger.client.model.TextLine;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
 
 /**
  * The type Consumer.
@@ -17,6 +18,7 @@ public class Consumer implements Runnable {
   private final Count syncCountFailure;
   private final TextbodyApi textbodyApi;
   private final BlockingQueue<CSVRecord> csvWaitingQueue;
+  private CountDownLatch countDownLatch;
 
   /**
    * Instantiates a new Consumer.
@@ -29,12 +31,13 @@ public class Consumer implements Runnable {
    */
   public Consumer(BlockingQueue<String> queue,
       Count syncCountSuccess, Count syncCountFailure, TextbodyApi textbodyApi,
-      BlockingQueue<CSVRecord> csvWaitingQueue) {
+      BlockingQueue<CSVRecord> csvWaitingQueue, CountDownLatch countDownLatch) {
     this.queue = queue;
     this.syncCountSuccess = syncCountSuccess;
     this.syncCountFailure = syncCountFailure;
     this.textbodyApi = textbodyApi;
     this.csvWaitingQueue = csvWaitingQueue;
+    this.countDownLatch = countDownLatch;
   }
 
   @Override
@@ -50,6 +53,7 @@ public class Consumer implements Runnable {
         process(line);
       }
     } catch (InterruptedException e) {
+      countDownLatch.countDown();
       Thread.currentThread().interrupt();
     }
   }
