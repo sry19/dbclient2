@@ -90,9 +90,9 @@ public class Consumer implements Runnable {
 
       // if status code is 4xx or 5xx, print error message
       this.syncCountFailure.inc();
-      ErrMessage errMessage = new Gson().fromJson(e.getResponseBody(), ErrMessage.class);
-      // System.err.println(errMessage.getMessage());
-      // System.out.println(e.getCode());
+      //ErrMessage errMessage = new Gson().fromJson(e.getResponseBody(), ErrMessage.class);
+      System.out.println(e.getCode());
+      System.out.println(e);
 
       csvRecord = new CSVRecord(startTime, "POST", latency, e.getCode());
     }
